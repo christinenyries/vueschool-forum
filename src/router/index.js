@@ -97,7 +97,6 @@ const routes = [
     path: "/logout",
     name: "SignOut",
     async beforeEnter() {
-      console.log("beforeEnter");
       await store.dispatch("auth/signOut");
       return { name: "Home" };
     },
