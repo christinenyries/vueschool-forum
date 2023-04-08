@@ -17,6 +17,7 @@
     "@hennge/vue3-pagination": "^1.0.17",
     "@vee-validate/i18n": "^4.8.3",
     "@vee-validate/rules": "^4.8.4",
+    "@vueuse/head": "^1.1.23",
     "core-js": "^3.8.3",
     "dayjs": "^1.11.7",
     "firebase": "^9.18.0",

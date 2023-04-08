@@ -1,5 +1,6 @@
 import { createApp } from "vue";
 import { createPinia } from "pinia";
+import { createHead } from "@vueuse/head";
 import App from "@/App.vue";
 import router from "@/router";
 import store from "@/store";
@@ -18,6 +19,7 @@ forumApp.use(ClickOutsideDirective);
 forumApp.use(PageScrollDirective);
 forumApp.use(Vue3Pagination);
 forumApp.use(VeeValidatePlugin);
+forumApp.use(createHead());
 
 const requireComponent = require.context(
   "./components",
