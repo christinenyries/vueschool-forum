@@ -1,26 +1,54 @@
 <template>
-  <img alt="Vue logo" src="./assets/logo.png">
-  <HelloWorld msg="Welcome to Your Vue.js App"/>
+  <TheNavbar />
+  <div class="container">
+    <RouterView
+      v-show="showPage"
+      @ready="onPageReady"
+      :key="`${$route.path}${JSON.stringify($route.query)}`"
+    />
+    <AppSpinner v-show="!showPage" class="push-top" />
+  </div>
+  <AppNotifications />
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
+import { mapActions } from "vuex";
+import TheNavbar from "./components/TheNavbar.vue";
+import NProgress from "nprogress";
 
 export default {
-  name: 'App',
-  components: {
-    HelloWorld
-  }
-}
+  name: "App",
+  components: { TheNavbar },
+  data() {
+    return {
+      showPage: false,
+    };
+  },
+  methods: {
+    ...mapActions("auth", ["fetchAuthUser"]),
+    onPageReady() {
+      this.showPage = true;
+      NProgress.done();
+    },
+  },
+  created() {
+    this.fetchAuthUser();
+    NProgress.configure({
+      speed: 200,
+      showSpinner: false,
+    });
+    this.$router.beforeEach(() => {
+      this.showPage = false;
+      NProgress.start();
+    });
+  },
+};
 </script>
 
 <style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
+@import "assets/style.css";
+@import "~nprogress/nprogress.css";
+#nprogress .bar {
+  background: #57ad8d !important;
 }
 </style>
