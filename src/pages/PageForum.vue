@@ -1,5 +1,5 @@
 <template>
-  <div v-if="asyncDataStatus_ready" class="col-full">
+  <div v-if="ready" class="col-full">
     <div class="col-full push-top">
       <AppHead>
         <title>{{ forum?.name }}</title>
@@ -31,68 +31,54 @@
   </div>
 </template>
 
-<script>
-import ThreadList from "@/components/ThreadList.vue";
-import { findById } from "@/helpers";
-import { mapActions } from "vuex";
-import asyncDataStatus from "@/mixins/asyncDataStatus";
+<script setup>
+import { computed } from "@vue/reactivity";
+import { ref, watch } from "vue";
+import { useStore } from "vuex";
+import { useRoute, useRouter } from "vue-router";
 
-export default {
-  components: {
-    ThreadList,
+import { findById } from "@/helpers";
+import useAsyncDataStatus from "@/composables/useAsyncDataStatus";
+import ThreadList from "@/components/ThreadList.vue";
+
+const props = defineProps({
+  id: {
+    required: true,
+    type: String,
   },
-  mixins: [asyncDataStatus],
-  props: {
-    id: {
-      required: true,
-      type: String,
-    },
-  },
-  data() {
-    return {
-      page: parseInt(this.$route.query.page) || 1,
-      perPage: 10,
-    };
-  },
-  computed: {
-    forum() {
-      return findById(this.$store.state.forums.items, this.id);
-    },
-    threads() {
-      if (!this.forum || !this.forum.threads) return [];
-      return this.forum.threads.reduce((threads, threadId) => {
-        const thread = this.$store.getters["threads/thread"](threadId);
-        if (thread) threads.push(thread);
-        return threads;
-      }, []);
-    },
-    threadCount() {
-      return this.forum.threads?.length || 0;
-    },
-    totalPages() {
-      return Math.ceil(this.threadCount / this.perPage);
-    },
-  },
-  methods: {
-    ...mapActions("forums", ["fetchForum"]),
-    ...mapActions("threads", ["fetchThreadsByPage"]),
-    ...mapActions("users", ["fetchUsers"]),
-  },
-  async created() {
-    const forum = await this.fetchForum({ id: this.id });
-    const threads = await this.fetchThreadsByPage({
-      ids: forum.threads,
-      page: this.page,
-      perPage: this.perPage,
-    });
-    const userIds = threads.map((thread) => thread.userId);
-    await this.fetchUsers({ ids: userIds });
-    this.asyncDataStatus_fetched();
-  },
-  watch: {
-    async page() {
-      this.$router.push({ query: { page: this.page } });
-    },
-  },
-};
+});
+
+const store = useStore();
+const router = useRouter();
+const route = useRoute();
+const { ready, makeReady } = useAsyncDataStatus();
+
+const page = ref(parseInt(route.query.page) || 1);
+const perPage = 10;
+
+const forum = computed(() => findById(store.state.forums.items, props.id));
+const threads = computed(() => {
+  if (!forum.value || !forum.value.threads) return [];
+  return forum.value.threads.reduce((threads, threadId) => {
+    const thread = store.getters["threads/thread"](threadId);
+    if (thread) threads.push(thread);
+    return threads;
+  }, []);
+});
+const threadCount = computed(() => forum.value.threads?.length || 0);
+const totalPages = computed(() => Math.ceil(threadCount.value / perPage));
+
+watch(page, () => router.push({ query: { page: page.value } }));
+
+(async () => {
+  const forum = await store.dispatch("forums/fetchForum", { id: props.id });
+  const threads = await store.dispatch("threads/fetchThreadsByPage", {
+    ids: forum.threads,
+    page: page.value,
+    perPage: perPage,
+  });
+  const userIds = threads.map((thread) => thread.userId);
+  await store.dispatch("users/fetchUsers", { ids: userIds });
+  makeReady();
+})();
 </script>

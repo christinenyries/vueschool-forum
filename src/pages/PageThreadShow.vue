@@ -1,5 +1,5 @@
 <template>
-  <div v-if="asyncDataStatus_ready" class="col-large push-top">
+  <div v-if="ready" class="col-large push-top">
     <h1>
       {{ thread.title }}
       <router-link
@@ -40,118 +40,89 @@
   </div>
 </template>
 
-<script>
-// import { mapState, mapActions } from "pinia";
-// import { useThreadsStore } from "@/stores/ThreadsStore";
-// import { usePostsStore } from "@/stores/PostsStore";
-import { mapActions, mapGetters } from "vuex";
+<script setup>
+import { computed } from "@vue/reactivity";
+import difference from "lodash/difference";
+import { useStore } from "vuex";
+
+import useAsyncDataStatus from "@/composables/useAsyncDataStatus";
+import useNotifications from "@/composables/useNotifications";
 
 import PostList from "@/components/PostList.vue";
 import PostEditor from "@/components/PostEditor.vue";
-import asyncDataStatus from "@/mixins/asyncDataStatus";
-import useNotifications from "@/composables/useNotifications";
 
-import difference from "lodash/difference";
+const props = defineProps({
+  id: {
+    required: true,
+    type: String,
+  },
+});
 
-export default {
-  components: {
-    PostList,
-    PostEditor,
-  },
-  setup() {
-    const { addNotification } = useNotifications();
-    return { addNotification };
-  },
-  mixins: [asyncDataStatus],
-  props: {
-    id: {
-      required: true,
-      type: String,
-    },
-  },
-  computed: {
-    // ...mapState(useThreadsStore, ["threads"]),
-    // ...mapState(usePostsStore, ["posts"]),
-    threads() {
-      return this.$store.state.threads.items;
-    },
-    posts() {
-      return this.$store.state.posts.items;
-    },
-    ...mapGetters("auth", ["authUser"]),
-    thread() {
-      return this.$store.getters["threads/thread"](this.id);
-      // return findById(this.threads, this.id); // also available under this.$route.params.id
-    },
-    threadPosts() {
-      return this.posts.filter((post) => post.threadId === this.id);
-    },
-  },
-  methods: {
-    // ...mapActions(usePostsStore, ["createPost"]),
-    ...mapActions("posts", ["createPost", "fetchPosts"]),
-    ...mapActions("threads", ["fetchThread"]),
-    ...mapActions("users", ["fetchUsers"]),
-    addPost(eventData) {
-      const post = {
-        ...eventData.post,
-        threadId: this.id,
-      };
-      this.createPost(post);
-    },
-    async fetchPostsWithUsers(ids) {
-      // fetch the posts in this thread
-      const posts = await this.fetchPosts({
-        ids,
-        onSnapshotCallback: ({ isLocal, previousItem }) => {
-          if (
-            !this.asyncDataStatus_ready ||
-            isLocal ||
-            (previousItem?.edited && !previousItem.edited?.at)
-          ) {
-            return;
-          }
-          this.addNotification({
-            message: "Thread recently updated",
-            timeout: 5000,
-          });
-        },
-      });
+const { ready, makeReady } = useAsyncDataStatus();
+const { addNotification } = useNotifications();
+const store = useStore();
 
-      // fetch the thread's user
-      // fetch the users of these posts
-      const userIds = posts
-        .map((post) => post.userId)
-        .concat(this.thread.userId);
-      await this.fetchUsers({
-        ids: userIds,
-      });
-    },
-  },
+const posts = computed(() => store.state.posts.items);
+const authUser = computed(() => store.getters["auth/authUser"]);
+const thread = computed(() => store.getters["threads/thread"](props.id));
+const threadPosts = computed(() =>
+  posts.value.filter((post) => post.threadId === props.id)
+);
 
-  async created() {
-    // fetch the thread
-    const thread = await this.fetchThread({
-      id: this.id,
-      onSnapshotCallback: async ({ isLocal, item, previousItem }) => {
-        if (!this.asyncDataStatus_ready || isLocal) return;
-        const newPosts = difference(item.posts, previousItem.posts);
-        const hasNewPosts = newPosts.length > 0;
-        if (hasNewPosts) {
-          await this.fetchPostsWithUsers(newPosts);
-        } else {
-          this.addNotification({
-            message: "Thread recently updated",
-            timeout: 5000,
-          });
-        }
-      },
-    });
-    await this.fetchPostsWithUsers(thread.posts);
-
-    this.asyncDataStatus_fetched();
-  },
+const addPost = (eventData) => {
+  const post = {
+    ...eventData.post,
+    threadId: props.id,
+  };
+  store.dispatch("posts/createPost", post);
 };
+const fetchPostsWithUsers = async (ids) => {
+  // fetch the posts in this thread
+  const posts = await store.dispatch("posts/fetchPosts", {
+    ids,
+    onSnapshotCallback: ({ isLocal, previousItem }) => {
+      if (
+        !ready.value ||
+        isLocal ||
+        (previousItem?.edited && !previousItem.edited?.at)
+      ) {
+        return;
+      }
+      addNotification({
+        message: "Thread recently updated",
+        timeout: 5000,
+      });
+    },
+  });
+
+  // fetch the thread's user
+  // fetch the users of these posts
+  const userIds = posts.map((post) => post.userId).concat(thread.value.userId);
+  await store.dispatch("users/fetchUsers", {
+    ids: userIds,
+  });
+};
+
+(async () => {
+  const thread = await store.dispatch("threads/fetchThread", {
+    id: props.id,
+    onSnapshotCallback: async ({ isLocal, item, previousItem }) => {
+      if (!ready.value || isLocal) return;
+      const newPosts = difference(item.posts, previousItem.posts);
+      const hasNewPosts = newPosts.length > 0;
+      if (hasNewPosts) {
+        await fetchPostsWithUsers(newPosts);
+      } else {
+        addNotification({
+          message: "Thread recently updated",
+          timeout: 5000,
+        });
+      }
+    },
+  });
+  await fetchPostsWithUsers(thread.posts);
+  makeReady();
+})();
 </script>
 
 <style>

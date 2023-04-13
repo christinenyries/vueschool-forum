@@ -1,42 +1,36 @@
 <template>
-  <div v-if="asyncDataStatus_ready" class="container col-full">
+  <div v-if="ready" class="container col-full">
     <h1 v-if="category">{{ category.name }}</h1>
     <category-item :category="category" />
   </div>
 </template>
 
-<script>
-import CategoryItem from "@/components/CategoryItem.vue";
-import { findById } from "@/helpers";
-import { mapActions } from "vuex";
-import asyncDataStatus from "@/mixins/asyncDataStatus";
+<script setup>
+import { computed } from "@vue/reactivity";
+import { useStore } from "vuex";
 
-export default {
-  components: {
-    CategoryItem,
+import useAsyncDataStatus from "@/composables/useAsyncDataStatus";
+import { findById } from "@/helpers";
+import CategoryItem from "@/components/CategoryItem.vue";
+
+const props = defineProps({
+  id: {
+    required: true,
+    type: String,
   },
-  mixins: [asyncDataStatus],
-  props: {
-    id: {
-      required: true,
-      type: String,
-    },
-  },
-  computed: {
-    category() {
-      return findById(this.$store.state.categories.items, this.id);
-    },
-  },
-  methods: {
-    ...mapActions("categories", ["fetchCategory"]),
-    ...mapActions("forums", ["fetchForums"]),
-  },
-  async created() {
-    const category = await this.fetchCategory({
-      id: this.id,
-    });
-    await this.fetchForums({ ids: category.forums });
-    this.asyncDataStatus_fetched();
-  },
-};
+});
+
+const store = useStore();
+const { ready, makeReady } = useAsyncDataStatus();
+const category = computed(() =>
+  findById(store.state.categories.items, props.id)
+);
+
+(async () => {
+  const category = await store.dispatch("categories/fetchCategory", {
+    id: props.id,
+  });
+  store.dispatch("forums/fetchForums", { ids: category.forums });
+  makeReady();
+})();
 </script>

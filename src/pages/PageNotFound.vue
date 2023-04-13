@@ -5,10 +5,8 @@
   </div>
 </template>
 
-<script>
-export default {
-  created() {
-    this.$emit("ready");
-  },
-};
+<script setup>
+import useAsyncDataStatus from "@/composables/useAsyncDataStatus";
+const { makeReady } = useAsyncDataStatus();
+makeReady();
 </script>

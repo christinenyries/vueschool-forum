@@ -29,47 +29,43 @@
   <TheNavbar />
   <div class="container">
     <RouterView
-      v-show="showPage"
-      @ready="onPageReady"
-      :key="`${$route.path}${JSON.stringify($route.query)}`"
+      v-show="ready"
+      :key="`${route.path}${JSON.stringify(route.query)}`"
     />
-    <AppSpinner v-show="!showPage" class="push-top" />
+    <AppSpinner v-show="!ready" class="push-top" />
   </div>
   <AppNotifications />
 </template>
 
-<script>
-import { mapActions } from "vuex";
-import TheNavbar from "./components/TheNavbar.vue";
+<script setup>
 import NProgress from "nprogress";
 
-export default {
-  name: "App",
-  components: { TheNavbar },
-  data() {
-    return {
-      showPage: false,
-    };
-  },
-  methods: {
-    ...mapActions("auth", ["fetchAuthUser"]),
-    onPageReady() {
-      this.showPage = true;
-      NProgress.done();
-    },
-  },
-  created() {
-    this.fetchAuthUser();
-    NProgress.configure({
-      speed: 200,
-      showSpinner: false,
-    });
-    this.$router.beforeEach(() => {
-      this.showPage = false;
-      NProgress.start();
-    });
-  },
-};
+import TheNavbar from "./components/TheNavbar.vue";
+import useAsyncDataStatus from "./composables/useAsyncDataStatus";
+import { useStore } from "vuex";
+import { useRouter, useRoute } from "vue-router";
+import { watchEffect } from "vue";
+
+const store = useStore();
+const router = useRouter();
+const route = useRoute();
+const { ready } = useAsyncDataStatus();
+
+watchEffect(() => {
+  if (ready.value) {
+    NProgress.done();
+  }
+});
+
+store.dispatch("auth/fetchAuthUser");
+
+NProgress.configure({
+  speed: 200,
+  showSpinner: false,
+});
+router.beforeEach(() => {
+  NProgress.start();
+});
 </script>
 
 <style>

@@ -38,39 +38,40 @@
   </div>
 </template>
 
-<script>
-export default {
-  data() {
-    return {
-      form: {
-        email: "",
-        password: "",
-      },
-    };
-  },
-  methods: {
-    async signIn() {
-      try {
-        await this.$store.dispatch(
-          "auth/signInWithEmailAndPassword",
-          this.form
-        );
-        this.successRedirect();
-      } catch (error) {
-        alert(error.message);
-      }
-    },
-    async signInWithGoogle() {
-      await this.$store.dispatch("auth/signInWithGoogle");
-      this.successRedirect();
-    },
-    successRedirect() {
-      const redirectTo = this.$route.query.redirectTo || { name: "Home" };
-      this.$router.push(redirectTo);
-    },
-  },
-  created() {
-    this.$emit("ready");
-  },
+<script setup>
+import { reactive } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { useStore } from "vuex";
+
+import useAsyncDataStatus from "@/composables/useAsyncDataStatus";
+
+const store = useStore();
+const route = useRoute();
+const router = useRouter();
+
+const { makeReady } = useAsyncDataStatus();
+
+const form = reactive({
+  email: "",
+  password: "",
+});
+
+const signIn = async () => {
+  try {
+    await store.dispatch("auth/signInWithEmailAndPassword", form);
+    successRedirect();
+  } catch (error) {
+    alert(error.message);
+  }
 };
+const signInWithGoogle = async () => {
+  await store.dispatch("auth/signInWithGoogle");
+  successRedirect();
+};
+const successRedirect = () => {
+  const redirectTo = route.query.redirectTo || { name: "Home" };
+  router.push(redirectTo);
+};
+
+makeReady();
 </script>

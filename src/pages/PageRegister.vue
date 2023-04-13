@@ -66,43 +66,41 @@
   </div>
 </template>
 
-<script>
-import { mapActions } from "vuex";
+<script setup>
+import { ref, reactive } from "vue";
+import { useRouter } from "vue-router";
+import { useStore } from "vuex";
+import useAsyncDataStatus from "@/composables/useAsyncDataStatus";
 
-export default {
-  data() {
-    return {
-      avatarPreview: null,
-      form: {
-        name: "",
-        username: "",
-        email: "",
-        password: "",
-        avatar: "",
-      },
-    };
-  },
-  methods: {
-    ...mapActions("auth", ["registerWithEmailAndPassword", "signInWithGoogle"]),
-    async register() {
-      await this.registerWithEmailAndPassword(this.form);
-      this.$router.push({ name: "Home" });
-    },
-    async registerWithGoogle() {
-      await this.signInWithGoogle();
-      this.$router.push({ name: "Home" });
-    },
-    handleImageUpload(e) {
-      this.form.avatar = e.target.files[0];
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        this.avatarPreview = event.target.result;
-      };
-      reader.readAsDataURL(this.form.avatar);
-    },
-  },
-  created() {
-    this.$emit("ready");
-  },
+const store = useStore();
+const router = useRouter();
+const { makeReady } = useAsyncDataStatus();
+
+const avatarPreview = ref(null);
+const form = reactive({
+  name: "",
+  username: "",
+  email: "",
+  password: "",
+  avatar: "",
+});
+
+const register = async () => {
+  await store.dispatch("auth/registerWithEmailAndPassword", this.form);
+  router.push({ name: "Home" });
 };
+const registerWithGoogle = async () => {
+  await store.dispatch("auth/signInWithGoogle");
+  router.push({ name: "Home" });
+};
+const handleImageUpload = (e) => {
+  form.avatar = e.target.files[0];
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    avatarPreview.value = event.target.result;
+  };
+  reader.readAsDataURL(form.avatar);
+};
+
+makeReady();
 </script>

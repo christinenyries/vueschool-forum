@@ -1,5 +1,5 @@
 <template>
-  <div v-if="asyncDataStatus_ready" class="col-full push-top">
+  <div v-if="ready" class="col-full push-top">
     <h1>
       Editing <i>{{ thread.title }}</i>
     </h1>
@@ -15,61 +15,58 @@
   </div>
 </template>
 
-<script>
-import ThreadEditor from "@/components/ThreadEditor.vue";
-import { findById } from "@/helpers";
-import { mapActions } from "vuex";
-import asyncDataStatus from "@/mixins/asyncDataStatus";
+<script setup>
+import { ref } from "vue";
+import { computed } from "@vue/reactivity";
+import { useStore } from "vuex";
+import { useRouter, onBeforeRouteLeave } from "vue-router";
 
-export default {
-  components: { ThreadEditor },
-  mixins: [asyncDataStatus],
-  props: {
-    id: {
-      type: String,
-      required: true,
-    },
+import { findById } from "@/helpers";
+import useAsyncDataStatus from "@/composables/useAsyncDataStatus";
+
+import ThreadEditor from "@/components/ThreadEditor.vue";
+
+const props = defineProps({
+  id: {
+    type: String,
+    required: true,
   },
-  data() {
-    return {
-      formIsDirty: false,
-    };
-  },
-  computed: {
-    thread() {
-      return findById(this.$store.state.threads.items, this.id);
-    },
-    text() {
-      return findById(this.$store.state.posts.items, this.thread.posts[0]).text;
-    },
-  },
-  methods: {
-    ...mapActions("threads", ["updateThread", "fetchThread", "fetchPost"]),
-    ...mapActions("posts", ["fetchPost"]),
-    cancel() {
-      this.$router.push({ name: "ThreadShow", params: { id: this.id } });
-    },
-    async save({ title, text }) {
-      const thread = await this.updateThread({
-        id: this.id,
-        text,
-        title,
-      });
-      this.$router.push({ name: "ThreadShow", params: { id: thread.id } });
-    },
-  },
-  async created() {
-    const thread = await this.fetchThread({ id: this.id });
-    await this.fetchPost({ id: thread.posts[0] });
-    this.asyncDataStatus_fetched();
-  },
-  beforeRouteLeave() {
-    if (this.formIsDirty) {
-      const confirmed = window.confirm(
-        "Are you sure you want to leave? Unsaved changes will be lost!"
-      );
-      if (!confirmed) return false;
-    }
-  },
+});
+
+const store = useStore();
+const router = useRouter();
+
+const { ready, makeReady } = useAsyncDataStatus();
+const formIsDirty = ref(false);
+
+const thread = computed(() => findById(store.state.threads.items, props.id));
+const text = computed(
+  () => findById(store.state.posts.items, thread.value.posts[0]).text
+);
+
+const cancel = () =>
+  router.push({ name: "ThreadShow", params: { id: props.id } });
+const save = async ({ title, text }) => {
+  const thread = await store.dispatch("threads/updateThread", {
+    id: props.id,
+    text,
+    title,
+  });
+  router.push({ name: "ThreadShow", params: { id: thread.id } });
 };
+
+(async () => {
+  const thread = await store.dispatch("threads/fetchThread", { id: props.id });
+  await store.dispatch("posts/fetchPost", { id: thread.posts[0] });
+  makeReady();
+})();
+
+onBeforeRouteLeave(() => {
+  if (formIsDirty.value) {
+    const confirmed = window.confirm(
+      "Are you sure you want to leave? Unsaved changes will be lost!"
+    );
+    if (!confirmed) return false;
+  }
+});
 </script>

@@ -1,47 +1,28 @@
 <template>
-  <div v-if="asyncDataStatus_ready" class="container">
+  <div v-if="ready" class="container">
     <h1 class="push-top">Welcome to the Vue.js 3 Master Class Forum</h1>
     <category-list :categories="categories" />
   </div>
 </template>
 
-<script>
-import CategoryList from "@/components/CategoryList.vue";
-import { mapActions } from "vuex";
-import asyncDataStatus from "@/mixins/asyncDataStatus";
-
-export default {
-  components: {
-    CategoryList,
-  },
-  mixins: [asyncDataStatus],
-  computed: {
-    categories() {
-      return this.$store.state.categories.items;
-    },
-  },
-  methods: {
-    ...mapActions("categories", ["fetchAllCategories"]),
-    ...mapActions("forums", ["fetchForums"]),
-  },
-  async created() {
-    const categories = await this.fetchAllCategories();
-    const forumIds = categories.map((category) => category.forums).flat();
-    await this.fetchForums({ ids: forumIds });
-    this.asyncDataStatus_fetched();
-  },
-};
-</script>
-<!-- <script setup>
-import CategoryList from "@/components/CategoryList.vue";
-// import { useCategoriesStore } from "@/stores/CategoriesStore";
-// import { storeToRefs } from "pinia";
-// const { categories } = storeToRefs(useCategoriesStore());
+<script setup>
+import { computed } from "@vue/reactivity";
 import { useStore } from "vuex";
+
+import useAsyncDataStatus from "@/composables/useAsyncDataStatus";
+import CategoryList from "@/components/CategoryList.vue";
+
 const store = useStore();
-const categories = store.state.categories;
-useStore().dispatch("fetchAllCategories");
-</script> -->
+const { ready, makeReady } = useAsyncDataStatus();
+const categories = computed(() => store.state.categories.items);
+
+(async () => {
+  const categories = await store.dispatch("categories/fetchAllCategories");
+  const forumIds = categories.map((category) => category.forums).flat();
+  await store.dispatch("forums/fetchForums", { ids: forumIds });
+  makeReady();
+})();
+</script>
 
 <style scoped>
 .post-list {
