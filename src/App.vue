@@ -70,7 +70,7 @@ router.beforeEach(() => {
 
 <style>
 @import "assets/style.css";
-@import "~nprogress/nprogress.css";
+@import "../node_modules/nprogress/nprogress.css";
 #nprogress .bar {
   background: #57ad8d !important;
 }

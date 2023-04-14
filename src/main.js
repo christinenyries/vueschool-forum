@@ -21,18 +21,13 @@ forumApp.use(Vue3Pagination);
 forumApp.use(VeeValidatePlugin);
 forumApp.use(createHead());
 
-const requireComponent = require.context(
-  "./components",
-  true,
-  /App[A-Z]\w+\.(vue|js)$/
-);
-requireComponent.keys().forEach(function (fileName) {
-  let baseComponentConfig = requireComponent(fileName);
-  baseComponentConfig = baseComponentConfig.default || baseComponentConfig;
-  const baseComponentName =
-    baseComponentConfig.name ||
-    fileName.replace(/^.+\//, "").replace(/\.\w+$/, "");
-  forumApp.component(baseComponentName, baseComponentConfig);
-});
+const globalComponents = import.meta.globEager("./components/App*.vue");
+for (const [path, definition] of Object.entries(globalComponents)) {
+  const globalComponentName = path
+    .split("/")
+    .pop()
+    .replace(/\.\w+$/, "");
+  forumApp.component(globalComponentName, definition.default);
+}
 
 forumApp.mount("#app");

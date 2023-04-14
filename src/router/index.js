@@ -7,29 +7,25 @@ const routes = [
   {
     path: "/",
     name: "Home",
-    component: () =>
-      import(/* webpackChunkName: "Home" */ "@/pages/PageHome.vue"),
+    component: () => import("@/pages/PageHome.vue"),
   },
   {
     path: "/me",
     name: "Profile",
-    component: () =>
-      import(/* webpackChunkName: "Profile" */ "@/pages/PageProfile"),
+    component: () => import("@/pages/PageProfile.vue"),
     meta: { toTop: true, smoothScroll: true, requiresAuth: true },
   },
   {
     path: "/me/edit",
     name: "ProfileEdit",
-    component: () =>
-      import(/* webpackChunkName: "Profile" */ "@/pages/PageProfile"),
+    component: () => import("@/pages/PageProfile.vue"),
     props: { edit: true },
     meta: { requiresAuth: true },
   },
   {
     path: "/threads/:id",
     name: "ThreadShow",
-    component: () =>
-      import(/* webpackChunkName: "ThreadShow" */ "@/pages/PageThreadShow"),
+    component: () => import("@/pages/PageThreadShow.vue"),
     props: true,
     async beforeEnter(to) {
       await store.dispatch("threads/fetchThread", {
@@ -52,45 +48,39 @@ const routes = [
   {
     path: "/forums/:forumId/threads/create",
     name: "ThreadCreate",
-    component: () =>
-      import(/* webpackChunkName: "ThreadCreate" */ "@/pages/PageThreadCreate"),
+    component: () => import("@/pages/PageThreadCreate.vue"),
     props: true,
     meta: { requiresAuth: true },
   },
   {
     path: "/threads/:id/edit",
     name: "ThreadEdit",
-    component: () =>
-      import(/* webpackChunkName: "ThreadEdit" */ "@/pages/PageThreadEdit"),
+    component: () => import("@/pages/PageThreadEdit.vue"),
     props: true,
     meta: { requiresAuth: true },
   },
   {
     path: "/categories/:id",
     name: "Category",
-    component: () =>
-      import(/* webpackChunkName: "Category" */ "@/pages/PageCategory"),
+    component: () => import("@/pages/PageCategory.vue"),
     props: true,
   },
   {
     path: "/forums/:id",
     name: "Forum",
-    component: () =>
-      import(/* webpackChunkName: "Forum" */ "@/pages/PageForum"),
+    component: () => import("@/pages/PageForum.vue"),
     props: true,
   },
   {
     path: "/register",
     name: "Register",
-    component: () =>
-      import(/* webpackChunkName: "Register" */ "@/pages/PageRegister"),
+    component: () => import("@/pages/PageRegister.vue"),
     meta: { requiresUnauth: true },
   },
   {
     path: "/signin",
     name: "SignIn",
-    component: () =>
-      import(/* webpackChunkName: "SignIn" */ "@/pages/PageSignIn"),
+    component: () => import("@/pages/PageSignIn.vue"),
     meta: { requiresUnauth: true },
   },
   {
@@ -104,8 +94,7 @@ const routes = [
   {
     path: "/:pathMatch(.*)*",
     name: "NotFound",
-    component: () =>
-      import(/* webpackChunkName: "NotFound" */ "@/pages/PageNotFound"),
+    component: () => import("@/pages/PageNotFound.vue"),
   },
 ];
 const router = createRouter({

@@ -1,3 +1,6 @@
+/* eslint-env node */
+require("@rushstack/eslint-patch/modern-module-resolution");
+
 module.exports = {
   root: true,
 
@@ -7,7 +10,7 @@ module.exports = {
   },
 
   parserOptions: {
-    parser: "@babel/eslint-parser",
+    ecmaVersion: "latest",
   },
 
   rules: {
